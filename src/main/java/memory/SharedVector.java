@@ -92,25 +92,25 @@ public class SharedVector {
                 this.vector[i] = -this.vector[i];
             }
         } finally {
-            this.readUnlock();
+            this.writeUnlock();
         }
         
     }
 
     public double dot(SharedVector other) {
         // TODO: compute dot product (row · column)
-        this.writeLock();
+        this.readLock();
         other.readLock();
         double result = 0;
         try{
-            if (this.vector.length == other.vector.length && this.orientation == VectorOrientation.ROW_MAJOR && this.orientation == VectorOrientation.COLUMN_MAJOR) {
+            if (this.vector.length == other.vector.length && this.orientation == VectorOrientation.ROW_MAJOR && other.orientation == VectorOrientation.COLUMN_MAJOR) {
                 for (int i = 0; i < this.vector.length; i++){
-                    result += this.vector[i]*other.get(i);
+                    result += this.vector[i]*other.vector[i];
                 }
             }
             return result;
         } finally {
-            this.writeUnlock();
+            this.readUnlock();
             other.readUnlock();
         }
     }
