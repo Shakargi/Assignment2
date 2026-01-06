@@ -153,7 +153,7 @@ public class SharedVector {
                 currentRow.readLock();
                 try {
                     for (int j = 0; j < rowWidth; j++) {
-                        tempResult[j] += this.vector[i] * currentRow.get(i);
+                        tempResult[j] += this.vector[i] * currentRow.get(j);
                     }
                 } finally {
                     currentRow.readUnlock();
