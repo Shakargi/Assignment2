@@ -2,14 +2,14 @@ package spl.lae;
 import java.io.IOException;
 import java.text.ParseException;
 
-import parser.*;
+import parser.ComputationNode;
+import parser.InputParser;
+import parser.OutputWriter;
 
 public class Main {
     public static void main(String[] args) throws IOException, ParseException {
       // TODO: main
       
-
-// אם קיבלנו פרמטרים אמיתיים (למשל מהבודק האוטומטי), נשתמש בהם
       if (args.length != 3) {
       System.out.println("Usage: java -jar LAE.jar <input.json> <output.json> <numThreads>");
       System.exit(1);
@@ -23,6 +23,8 @@ public class Main {
       // 2. Parse input JSON to create computation tree
       InputParser parser = new InputParser();
       ComputationNode root = parser.parse(inputPath);
+
+      root.associativeNesting();
 
       // 3. Create LinearAlgebraEngine with specified number of threads
       LinearAlgebraEngine engine = new LinearAlgebraEngine(numThreads);
@@ -38,6 +40,6 @@ public class Main {
       String report = engine.getWorkerReport();
       System.out.println("Computation finished successfully. ");
       System.out.println(report);
+
     }
   }
-
