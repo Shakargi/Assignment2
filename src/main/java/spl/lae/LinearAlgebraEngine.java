@@ -1,10 +1,10 @@
 package spl.lae;
 
-import parser.*;
-import memory.*;
-import scheduling.*;
-
 import java.util.List;
+
+import memory.SharedMatrix;
+import parser.ComputationNode;
+import scheduling.TiredExecutor;
 
 public class LinearAlgebraEngine {
 
@@ -25,7 +25,7 @@ public class LinearAlgebraEngine {
             if (nodeToCompute == null) {
                 break; // No resolvable nodes found
             }
-            loadAndCompute(computationRoot);
+            loadAndCompute(nodeToCompute);
             
         }
 
@@ -130,4 +130,6 @@ public class LinearAlgebraEngine {
         // TODO: return summary of worker activity
         return executor.getWorkerReport();
     }
+
+    
 }
