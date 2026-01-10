@@ -28,12 +28,22 @@ public class SharedVector {
 
     public int length() {
         // TODO: return vector length
-        return this.vector.length;
+        readLock();
+        try {
+            return this.vector.length;   
+        } finally {
+            readUnlock();
+        }
     }
 
     public VectorOrientation getOrientation() {
         // TODO: return vector orientation
-        return this.orientation;
+        readLock();
+        try {
+            return this.orientation;
+        } finally {
+            readUnlock();
+        }
     }
 
     public void writeLock() {
@@ -74,7 +84,7 @@ public class SharedVector {
         try {
             if (this.vector.length == other.vector.length){
                 for (int i = 0; i < this.vector.length; i++){
-                    this.vector[i] += other.get(i);
+                    this.vector[i] += other.vector[i];
                 }
             }
         } finally {
@@ -153,7 +163,7 @@ public class SharedVector {
                 currentRow.readLock();
                 try {
                     for (int j = 0; j < rowWidth; j++) {
-                        tempResult[j] += this.vector[i] * currentRow.get(j);
+                        tempResult[j] += this.vector[i] * currentRow.vector[j];
                     }
                 } finally {
                     currentRow.readUnlock();
