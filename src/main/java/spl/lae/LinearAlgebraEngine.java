@@ -20,6 +20,9 @@ public class LinearAlgebraEngine {
     public ComputationNode run(ComputationNode computationRoot) {
         // TODO: resolve computation tree step by step until final matrix is produced
         // Root Optimization
+
+        computationRoot.associativeNesting();
+        
         while(computationRoot.getNodeType() != parser.ComputationNodeType.MATRIX) {
             parser.ComputationNode nodeToCompute = computationRoot.findResolvable();
             if (nodeToCompute == null) {
@@ -129,6 +132,14 @@ public class LinearAlgebraEngine {
     public String getWorkerReport() {
         // TODO: return summary of worker activity
         return executor.getWorkerReport();
+    }
+
+    public void shutdown() {
+        try {
+            executor.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     
