@@ -1,45 +1,58 @@
 package spl.lae;
-import java.io.IOException;
-import java.text.ParseException;
 
+import java.io.IOException;
 import parser.ComputationNode;
 import parser.InputParser;
 import parser.OutputWriter;
 
 public class Main {
-    public static void main(String[] args) throws IOException, ParseException {
-      // TODO: main
-      
-      if (args.length != 3) {
-      System.out.println("Usage: java -jar LAE.jar <input.json> <output.json> <numThreads>");
-      System.exit(1);
-      }
+    public static void main(String[] args) {
+        if (args.length != 3) {
+            System.out.println("Usage: java -jar lga-1.0.jar <numThreads> <input.json> <output.json>");
+            System.exit(1);
+        }
 
-      // 1. Read command-line arguments
-      String inputPath = args[0];
-      String outputPath = args[1];
-      int numThreads = Integer.parseInt(args[2]);
-      
-      // 2. Parse input JSON to create computation tree
-      InputParser parser = new InputParser();
-      ComputationNode root = parser.parse(inputPath);
+        int numThreads = 0;
+        String inputPath = "";
+        String outputPath = "";
 
-      root.associativeNesting();
+        try {
+            numThreads = Integer.parseInt(args[0]);
+            inputPath = args[1];
+            outputPath = args[2];
+        } catch (NumberFormatException e) {
+            System.err.println("Error: First argument must be an integer representing the number of threads.");
+            System.exit(1);
+        }
 
-      // 3. Create LinearAlgebraEngine with specified number of threads
-      LinearAlgebraEngine engine = new LinearAlgebraEngine(numThreads);
+        LinearAlgebraEngine engine = null;
 
-      // 4. Run computation
-      ComputationNode resultNode = engine.run(root);
+        try {
+            engine = new LinearAlgebraEngine(numThreads);
 
-      // 5. Write output JSON with the result matrix
-      double[][] resultMatrix = resultNode.getMatrix();
-      OutputWriter.write(resultMatrix, outputPath);
+            InputParser parser = new InputParser();
+            ComputationNode root = parser.parse(inputPath);
 
-      // 6. Print worker report
-      String report = engine.getWorkerReport();
-      System.out.println("Computation finished successfully. ");
-      System.out.println(report);
+            ComputationNode resultNode = engine.run(root);
 
+            double[][] resultMatrix = resultNode.getMatrix();
+            OutputWriter.write(resultMatrix, outputPath);
+
+            System.out.println("Computation finished successfully.");
+            System.out.println(engine.getWorkerReport());
+
+        } catch (Exception e) {
+            try {
+                OutputWriter.write(e.getMessage(), outputPath);
+            } catch (IOException ioException) {
+                System.err.println("Failed to write error to output file:");
+                ioException.printStackTrace();
+            }
+            e.printStackTrace();
+        } finally {
+            if (engine != null) {
+                engine.shutdown();
+            }
+        }
     }
-  }
+}
