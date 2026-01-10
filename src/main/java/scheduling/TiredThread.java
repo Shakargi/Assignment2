@@ -7,21 +7,20 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class TiredThread extends Thread implements Comparable<TiredThread> {
 
-    private static final Runnable POISON_PILL = () -> {}; // Special task to signal shutdown
+    private static final Runnable POISON_PILL = () -> {};
 
-    private final int id; // Worker index assigned by the executor
-    private final double fatigueFactor; // Multiplier for fatigue calculation
+    private final int id;
+    private final double fatigueFactor;
 
-    private final AtomicBoolean alive = new AtomicBoolean(true); // Indicates if the worker should keep running
+    private final AtomicBoolean alive = new AtomicBoolean(true);
 
-    // Single-slot handoff queue; executor will put tasks here
     private final BlockingQueue<Runnable> handoff = new ArrayBlockingQueue<>(1);
 
-    private final AtomicBoolean busy = new AtomicBoolean(false); // Indicates if the worker is currently executing a task
+    private final AtomicBoolean busy = new AtomicBoolean(false);
 
-    private final AtomicLong timeUsed = new AtomicLong(0); // Total time spent executing tasks
-    private final AtomicLong timeIdle = new AtomicLong(0); // Total time spent idle
-    private final AtomicLong idleStartTime = new AtomicLong(0); // Timestamp when the worker became idle
+    private final AtomicLong timeUsed = new AtomicLong(0); 
+    private final AtomicLong timeIdle = new AtomicLong(0); 
+    private final AtomicLong idleStartTime = new AtomicLong(0);
 
     public TiredThread(int id, double fatigueFactor) {
         this.id = id;
@@ -50,62 +49,59 @@ public class TiredThread extends Thread implements Comparable<TiredThread> {
         return timeIdle.get();
     }
 
-    /**
-     * Assign a task to this worker.
-     * This method is non-blocking: if the worker is not ready to accept a task,
-     * it throws IllegalStateException.
-     */
     public void newTask(Runnable task) {
-       
-       if(!handoff.offer(task)) {
-           throw new IllegalStateException("Worker is not ready to accept a new task.");
-       }
+        try {
+            this.handoff.add(task);
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException("Worker is not ready to accept a new task.");
+        }
     }
 
-    /**
-     * Request this worker to stop after finishing current task.
-     * Inserts a poison pill so the worker wakes up and exits.
-     */
     public void shutdown() {
-       handoff.offer(POISON_PILL);
+        try {
+            this.handoff.put(POISON_PILL);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public void run() {
-       // TODO
-       try {
-           while (alive.get()) {
-               Runnable task = handoff.take();
-               if (task == POISON_PILL) {
-                   break;
-               }
-               // Update idle time
-               long idleEndTime = System.nanoTime();
-               timeIdle.addAndGet(idleEndTime - idleStartTime.get());
+        try {
+            while (alive.get()) {
+                Runnable task = handoff.take();
 
-               busy.set(true);
-               long startTime = System.nanoTime();
-               try {
-                   task.run();
-               } finally {
-                   long endTime = System.nanoTime();
-                   timeUsed.addAndGet(endTime - startTime);
-                   busy.set(false);
-                   idleStartTime.set(System.nanoTime());
-               }
-           }
-       } catch (InterruptedException e) {
-           Thread.currentThread().interrupt();
-       }
+                if (task == POISON_PILL) {
+                    alive.set(false);
+                    break;
+                }
+
+                long currentTime = System.nanoTime();
+                long idleDuration = currentTime - idleStartTime.get();
+                timeIdle.addAndGet(idleDuration);
+
+                busy.set(true);
+                long startTime = System.nanoTime();
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    long endTime = System.nanoTime();
+                    long executionDuration = endTime - startTime;
+                    timeUsed.addAndGet(executionDuration);
+
+                    busy.set(false);
+                    idleStartTime.set(System.nanoTime());
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public int compareTo(TiredThread o) {
-        if (this.getFatigue() < o.getFatigue()) {
-            return -1;
-        } else if (this.getFatigue() > o.getFatigue()) {
-            return 1;
-        }
-        return 0;
+        return Double.compare(this.getFatigue(), o.getFatigue());
     }
 }
